@@ -2,14 +2,14 @@ import httpx
 from openai import AzureOpenAI
 import streamlit as st
 
-st.title("Bird Chatbot")
-st.sidebar.header("Bird Chatbot")
+st.title("Selective RAG Chatbot")
+st.sidebar.header("Selective RAG Chatbot")
 
 #TODO: add list of selected documents to sidebar?
 
 # Initialisation
-system_msg = "You are a helpful assistant that provides facts about birds."
-intro_msg = "Hello! I am an AI assistant that can satiate your curiosity about birds. Ask me anything about them!"
+system_msg = "You are a helpful assistant that provides information based on the provided database."
+intro_msg = "Hello! Ask me about your uploaded documents!"
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": system_msg},
                                 {"role": "assistant", "content": intro_msg}]
@@ -33,7 +33,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Receive user input and generate a response
-if prompt := st.chat_input("What is up?"):
+if prompt := st.chat_input("..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)

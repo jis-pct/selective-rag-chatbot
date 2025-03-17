@@ -1,14 +1,14 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="BirdGPT",
+    page_title="Selective RAG Chatbot",
     page_icon="🦜",
 )
 
-st.write("# Welcome to BirdGPT! 🦜")
+st.write("# Welcome to the selective RAG chatbot 🦜")
 
 st.markdown(
     """
-    This is a chatbot that can provide you with information about birds.
-    Select the bird factsheets you want to chat to, then start chatting to the bot!"""
+    This is a chatbot that lets you talk to any uploaded documents.
+    Upload documents, then start chatting to the bot!"""
 )
