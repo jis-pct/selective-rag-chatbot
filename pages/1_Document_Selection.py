@@ -1,36 +1,34 @@
 import streamlit as st
-from datetime import datetime
 from azure.storage.blob import BlobServiceClient
 
 st.title("Document Selection")
 st.sidebar.header("Document Selection")
-
-#TODO: choose which blob container to use
-#TODO: uploading the same docmument?
-system_msg = st.sidebar.text_area("System Message (Changes will clear history)", value="You are a helpful assistant that provides information based on the provided database.")
 
 # Initialize blob client
 @st.cache_resource
 def get_blob_service_client():
     return BlobServiceClient.from_connection_string(st.secrets["AZURE_STORAGE_CONNECTION_STRING"])
 blob_service_client = get_blob_service_client()
-container_name = "rag-storage"
+
+# Let user select a container
+container_list = [container["name"] for container in blob_service_client.list_containers() if container["name"][0] != "$"]
+selected_container = st.sidebar.selectbox("Select a container", container_list, index=0)
 
 # List blobs in the container
 def list_blobs():
-    container_client = blob_service_client.get_container_client(container_name)
+    container_client = blob_service_client.get_container_client(selected_container)
     blob_list = container_client.list_blobs()
     return [blob.name for blob in blob_list]
 
 # Upload a file to the container
 def upload_blob(file):
-    blob_client = blob_service_client.get_blob_client(container=container_name, blob=file.name)
-    blob_client.upload_blob(file, metadata = {"timestamp": datetime.now().isoformat()})
+    blob_client = blob_service_client.get_blob_client(container=selected_container, blob=file.name)
+    blob_client.upload_blob(file)
     st.success(f"Uploaded {file.name}")
 
 # Delete a blob from the container
 def delete_blob(blob_name):
-    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+    blob_client = blob_service_client.get_blob_client(container=selected_container, blob=blob_name)
     blob_client.delete_blob()
     st.success(f"Deleted {blob_name}")
 
