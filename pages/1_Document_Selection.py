@@ -1,5 +1,9 @@
 import streamlit as st
+from dotenv import load_dotenv
+import os
 from azure.storage.blob import BlobServiceClient
+
+load_dotenv()
 
 st.title("Document Selection")
 st.sidebar.header("Document Selection")
@@ -7,7 +11,7 @@ st.sidebar.header("Document Selection")
 # Initialize blob client
 @st.cache_resource
 def get_blob_service_client():
-    return BlobServiceClient.from_connection_string(st.secrets["AZURE_STORAGE_CONNECTION_STRING"])
+    return BlobServiceClient.from_connection_string(os.environ["AZURE_STORAGE_CONNECTION_STRING"])
 blob_service_client = get_blob_service_client()
 
 # Let user select a container

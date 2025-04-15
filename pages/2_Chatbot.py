@@ -1,20 +1,22 @@
 import httpx
 from openai import AzureOpenAI, BadRequestError
+from dotenv import load_dotenv
 import streamlit as st
 import re
+import os
+
+load_dotenv()
 
 st.title("Selective RAG Chatbot")
 st.sidebar.header("Selective RAG Chatbot")
-
-# MCP model context protocol
 
 # Connect to client
 @st.cache_resource
 def get_client():
     return AzureOpenAI(  
-        azure_endpoint=st.secrets["AZURE_AI_ENDPOINT"],  
-        api_key=st.secrets["AZURE_AI_API_KEY"],  
-        api_version=st.secrets["AZURE_AI_API_VERSION"],
+        azure_endpoint=os.environ["AZURE_AI_ENDPOINT"],  
+        api_key=os.environ["AZURE_AI_API_KEY"],  
+        api_version=os.environ["AZURE_AI_API_VERSION"],
         http_client = httpx.Client(verify=False)
     )
 client = get_client()
@@ -23,18 +25,18 @@ client = get_client()
 def check_index_name(name):
     try:
         client.chat.completions.create(
-            model=st.secrets["AZURE_AI_CHAT_DEPLOYMENT"],
+            model=os.environ["AZURE_AI_CHAT_DEPLOYMENT"],
             messages=[{"role": "user", "content": "What is in your database?"}],
             max_tokens=1,
             extra_body={  
                 "data_sources": [{  
                     "type": "azure_search",  
                     "parameters": {  
-                        "endpoint": st.secrets["AZURE_AI_SEARCH_ENDPOINT"],  
+                        "endpoint": os.environ["AZURE_AI_SEARCH_ENDPOINT"],  
                         "index_name": name,  
                         "authentication": {  
                             "type": "api_key",  
-                            "key": st.secrets["AZURE_AI_SEARCH_API_KEY"]
+                            "key": os.environ["AZURE_AI_SEARCH_API_KEY"]
                         }
                     }  
                 }]
@@ -98,49 +100,49 @@ if prompt := st.chat_input("..."):
         st.markdown(prompt)
 
     # Send the prompt to the model and write the response
-    with st.chat_message("assistant"):
-        response = client.chat.completions.create(
-            model=st.secrets["AZURE_AI_CHAT_DEPLOYMENT"],
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            max_tokens=max_response,
-            temperature=temperature,
-            stop=phrases,
-            top_p=top_p,
-            frequency_penalty=frequency_penalty,
-            presence_penalty=presence_penalty,
-            extra_body={  
-                "data_sources": [{  
-                    "type": "azure_search",  
-                    "parameters": {  
-                        "endpoint": st.secrets["AZURE_AI_SEARCH_ENDPOINT"],  
-                        "index_name": index_name, 
-                        "semantic_configuration": f"{index_name}-semantic-configuration",
-                        "query_type": "vector_semantic_hybrid",
-                        "in_scope": scope,
-                        "strictness": strictness,
-                        "top_n_documents": top_n_documents,
-                        "authentication": {  
-                            "type": "api_key",  
-                            "key": st.secrets["AZURE_AI_SEARCH_API_KEY"]
-                        },
-                        "fields_mapping": {
-                            "content_fields_separator": "\\n",
-                            "title_field": "title",
-                            "url_field": "url"
-                        },
-                        "embedding_dependency": {
-                            "type": "deployment_name",
-                            "deployment_name": st.secrets["AZURE_AI_EMBEDDING_NAME"]
-                        }
-                    }  
-                }]
-            } 
-        )
+    response = client.chat.completions.create(
+        model=os.environ["AZURE_AI_CHAT_DEPLOYMENT"],
+        messages=[
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages
+        ],
+        max_tokens=max_response,
+        temperature=temperature,
+        stop=phrases,
+        top_p=top_p,
+        frequency_penalty=frequency_penalty,
+        presence_penalty=presence_penalty,
+        extra_body={  
+            "data_sources": [{  
+                "type": "azure_search",  
+                "parameters": {  
+                    "endpoint": os.environ["AZURE_AI_SEARCH_ENDPOINT"],  
+                    "index_name": index_name, 
+                    "semantic_configuration": f"{index_name}-semantic-configuration",
+                    "query_type": "vector_semantic_hybrid",
+                    "in_scope": scope,
+                    "strictness": strictness,
+                    "top_n_documents": top_n_documents,
+                    "authentication": {  
+                        "type": "api_key",  
+                        "key": os.environ["AZURE_AI_SEARCH_API_KEY"]
+                    },
+                    "fields_mapping": {
+                        "content_fields_separator": "\\n",
+                        "title_field": "title",
+                        "url_field": "url"
+                    },
+                    "embedding_dependency": {
+                        "type": "deployment_name",
+                        "deployment_name": os.environ["AZURE_AI_EMBEDDING_NAME"]
+                    }
+                }  
+            }]
+        } 
+    )
 
     # Show response and add to chat history
     citation_list = [f"[{x['title']}]({x["url"]})" for x in response.choices[0].message.context['citations']]
-    display_chatbot_response(response.choices[0].message.content, citation_list)
+    with st.chat_message("assistant"):
+        display_chatbot_response(response.choices[0].message.content, citation_list)
     st.session_state.messages.append({"role": "assistant", "content": response.choices[0].message.content, "citation_list": citation_list})
